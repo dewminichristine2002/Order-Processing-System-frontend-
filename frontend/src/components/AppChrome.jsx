@@ -76,12 +76,12 @@ export function PageTabs({
   return (
     <nav className="page-tabs">
       {[
-        ["inventory-management", "Inventory Admin"],
-        ["catalog", "Shop Catalog"],
-        ["cart", `Shopping Cart (${cartItemCount})`],
-        ["order-creation", "Place Order"],
-        ["payment", "Payment"],
-        ["shipment", "Shipment"],
+        ["catalog", "🏪 Browse Items"],
+        ["cart", `🛒 Cart (${cartItemCount})`],
+        ["payment", "💰 Payment"],
+        ["shipment", "📦 Delivery"],
+        ["inventory-management", "📊 Stock Mgmt"],
+        ["history", "📋 Order History"],
       ].map(([value, label]) => (
         <button
           key={value}
@@ -92,7 +92,6 @@ export function PageTabs({
           onClick={() => onChange(value)}
           disabled={
             (value === "cart" && cartItemCount === 0) ||
-            (value === "order-creation" && !orderId && cartLength === 0) ||
             (value === "payment" && !orderId) ||
             (value === "shipment" && !orderId)
           }

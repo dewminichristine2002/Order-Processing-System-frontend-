@@ -1,19 +1,10 @@
 function PaymentPage({
   actionInFlight,
   ButtonLabel,
-  TableSkeleton,
   DetailCardSkeleton,
-  allPayments,
-  paymentSearchQuery,
-  setPaymentSearchQuery,
-  handleLoadAllPayments,
   pendingAction,
   formatMoney,
-  setPaymentData,
-  setOrderId,
-  setCurrentOrderSnapshot,
   setPage,
-  setNotice,
   currentOrderSnapshot,
   orderId,
   expectedPaymentAmount,
@@ -33,108 +24,6 @@ function PaymentPage({
 }) {
   return (
     <main className="page-grid">
-      <section className="panel full-width">
-        <div className="panel-heading">
-          <div>
-            <p className="section-label">All Payments</p>
-            <h2>View payment history</h2>
-          </div>
-        </div>
-
-        <div className="shipment-action-row">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={handleLoadAllPayments}
-            disabled={actionInFlight}
-          >
-            <ButtonLabel
-              loading={pendingAction === "load-all-payments"}
-              loadingText="Loading Payments..."
-            >
-              Load All Payments
-            </ButtonLabel>
-          </button>
-        </div>
-
-        {pendingAction === "load-all-payments" && (
-          <TableSkeleton columns={6} rows={4} className="payment-search-results" />
-        )}
-
-        {allPayments.length > 0 && (
-          <>
-            <input
-              type="text"
-              value={paymentSearchQuery}
-              onChange={(e) => setPaymentSearchQuery(e.target.value)}
-              placeholder="Search by payment ID, order ID, payment method, or status"
-            />
-
-            <div className="payment-search-results">
-              <div className="payment-table payment-table-head">
-                <span>Payment ID</span>
-                <span>Order ID</span>
-                <span>Method</span>
-                <span>Amount</span>
-                <span>Status</span>
-                <span>Action</span>
-              </div>
-
-              {allPayments
-                .filter((payment) => {
-                  const query = paymentSearchQuery.trim().toLowerCase();
-                  if (!query) {
-                    return true;
-                  }
-
-                  return (
-                    String(payment.paymentId || "").includes(query) ||
-                    String(payment.orderId || "").includes(query) ||
-                    (payment.paymentMethod || "").toLowerCase().includes(query) ||
-                    String(payment.amount || "").toLowerCase().includes(query) ||
-                    (payment.paymentStatus || "").toLowerCase().includes(query)
-                  );
-                })
-                .map((payment) => (
-                  <article
-                    key={payment.paymentId}
-                    className="payment-table payment-table-row"
-                  >
-                    <span className="payment-table-id">#{payment.paymentId}</span>
-                    <span>#{payment.orderId}</span>
-                    <span>{payment.paymentMethod || "N/A"}</span>
-                    <span>{formatMoney(payment.amount)}</span>
-                    <span
-                      className={`status-pill payment-status-badge status-${payment.paymentStatus?.toLowerCase()}`}
-                    >
-                      {payment.paymentStatus}
-                    </span>
-                    <div className="payment-table-action">
-                      <button
-                        type="button"
-                        className="ghost-button"
-                        onClick={() => {
-                          setPaymentData(payment);
-                          setOrderId(payment.orderId ?? null);
-                          setCurrentOrderSnapshot((snapshot) => ({
-                            ...(snapshot || {}),
-                            orderId: payment.orderId ?? snapshot?.orderId ?? null,
-                            totalAmount: Number(payment.amount || snapshot?.totalAmount || 0),
-                          }));
-                          setPage("payment");
-                          setNotice(`Loaded payment #${payment.paymentId}`);
-                        }}
-                      >
-                        View
-                      </button>
-                    </div>
-                  </article>
-                ))}
-            </div>
-          </>
-        )}
-      </section>
-
       <section className="panel full-width">
         <div className="panel-heading">
           <div>

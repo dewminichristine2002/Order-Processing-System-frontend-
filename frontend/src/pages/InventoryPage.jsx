@@ -12,6 +12,12 @@ function InventoryPage({
   inventoryIncreaseForm,
   setInventoryIncreaseForm,
   handleIncreaseInventoryStock,
+  inventoryEditForm,
+  setInventoryEditForm,
+  handleStartEditInventoryItem,
+  handleCancelEditInventoryItem,
+  handleUpdateInventoryItem,
+  handleDeleteInventoryItem,
   handleLoadStockUpdates,
   pendingAction,
   stockUpdates,
@@ -210,6 +216,94 @@ function InventoryPage({
       <section className="panel full-width">
         <div className="panel-heading">
           <div>
+            <p className="section-label">Edit Product</p>
+            <h2>Update or remove an inventory item</h2>
+          </div>
+        </div>
+
+        <form
+          className="form-grid enterprise-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleUpdateInventoryItem();
+          }}
+        >
+          <input
+            type="number"
+            min="1"
+            value={inventoryEditForm.productId}
+            onChange={(event) =>
+              setInventoryEditForm({
+                ...inventoryEditForm,
+                productId: event.target.value,
+              })
+            }
+            placeholder="Product ID"
+            required
+          />
+          <input
+            value={inventoryEditForm.productName}
+            onChange={(event) =>
+              setInventoryEditForm({
+                ...inventoryEditForm,
+                productName: event.target.value,
+              })
+            }
+            placeholder="Product Name"
+            required
+          />
+          <input
+            type="number"
+            min="0"
+            value={inventoryEditForm.stockQuantity}
+            onChange={(event) =>
+              setInventoryEditForm({
+                ...inventoryEditForm,
+                stockQuantity: event.target.value,
+              })
+            }
+            placeholder="Stock Quantity"
+            required
+          />
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={inventoryEditForm.price}
+            onChange={(event) =>
+              setInventoryEditForm({
+                ...inventoryEditForm,
+                price: event.target.value,
+              })
+            }
+            placeholder="Unit Price"
+            required
+          />
+
+          <div className="shipment-action-row">
+            <button type="submit" disabled={actionInFlight}>
+              <ButtonLabel
+                loading={pendingAction === "edit-product"}
+                loadingText="Updating Item..."
+              >
+                Update Item
+              </ButtonLabel>
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={handleCancelEditInventoryItem}
+              disabled={actionInFlight}
+            >
+              Reset Edit Form
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="panel full-width">
+        <div className="panel-heading">
+          <div>
             <p className="section-label">Current Inventory</p>
             <h2>Search and manage stock items</h2>
           </div>
@@ -255,6 +349,22 @@ function InventoryPage({
                   }
                 >
                   Restock
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => handleStartEditInventoryItem(product)}
+                  disabled={actionInFlight}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="danger-button"
+                  onClick={() => handleDeleteInventoryItem(product.productId)}
+                  disabled={actionInFlight}
+                >
+                  Delete
                 </button>
               </div>
             </article>

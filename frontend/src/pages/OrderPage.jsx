@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 function OrderPage({
   actionInFlight,
   ButtonLabel,
@@ -6,22 +8,22 @@ function OrderPage({
   orderSearchQuery,
   setOrderSearchQuery,
   handleLoadAllOrders,
+  handleViewOrderDetails,
   pendingAction,
   formatMoney,
-  setOrderId,
-  setCurrentOrderSnapshot,
-  setPage,
-  setNotice,
-  customerForm,
-  setCustomerForm,
-  handleCreateOrder,
-  cart,
-  cartItemCount,
-  cartSubtotal,
-  cartTotal,
 }) {
+  const [viewOrderModal, setViewOrderModal] = useState(null);
+
+  async function handleOpenOrderModal(order) {
+    const loadedOrder = await handleViewOrderDetails(order);
+    if (loadedOrder) {
+      setViewOrderModal(loadedOrder);
+    }
+  }
+
   return (
-    <main className="page-grid">
+    <>
+      <main className="page-grid">
       <section className="panel full-width">
         <div className="panel-heading">
           <div>
@@ -97,20 +99,8 @@ function OrderPage({
                       <button
                         type="button"
                         className="ghost-button"
-                        onClick={() => {
-                          setOrderId(order.orderId ?? null);
-                          setCurrentOrderSnapshot({
-                            orderId: order.orderId,
-                            customerName: order.customerName || "",
-                            email: order.email || "",
-                            contactNumber: order.contactNumber || "",
-                            deliveryAddress: order.deliveryAddress || "",
-                            totalAmount: Number(order.totalAmount || 0),
-                            items: Array.isArray(order.items) ? order.items : [],
-                          });
-                          setPage("order-creation");
-                          setNotice(`Loaded order #${order.orderId}`);
-                        }}
+                        onClick={() => handleOpenOrderModal(order)}
+                        disabled={actionInFlight && pendingAction === "load-order-details"}
                       >
                         View
                       </button>
@@ -122,124 +112,89 @@ function OrderPage({
         )}
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <p className="section-label">Order Creation</p>
-            <h2>Capture customer and delivery details</h2>
-            <p className="workflow-note">
-              Finalize the order profile before the payment and shipment flow begins.
-            </p>
-          </div>
-        </div>
+      </main>
 
-        <form
-          className="order-form enterprise-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleCreateOrder();
-          }}
+      {viewOrderModal && (
+        <div
+          className="order-view-modal-backdrop"
+          role="presentation"
+          onClick={() => setViewOrderModal(null)}
         >
-          <input
-            value={customerForm.customerName}
-            onChange={(e) =>
-              setCustomerForm({
-                ...customerForm,
-                customerName: e.target.value,
-              })
-            }
-            placeholder="Full Name"
-            required
-          />
-          <input
-            value={customerForm.email}
-            onChange={(e) =>
-              setCustomerForm({ ...customerForm, email: e.target.value })
-            }
-            type="email"
-            placeholder="Email Address"
-            required
-          />
-          <input
-            value={customerForm.contactNumber}
-            onChange={(e) =>
-              setCustomerForm({
-                ...customerForm,
-                contactNumber: e.target.value,
-              })
-            }
-            placeholder="Contact Number"
-            required
-          />
-          <textarea
-            value={customerForm.deliveryAddress}
-            onChange={(e) =>
-              setCustomerForm({
-                ...customerForm,
-                deliveryAddress: e.target.value,
-              })
-            }
-            placeholder="Delivery Address"
-            required
-          />
-
-          <button type="submit" disabled={actionInFlight}>
-            <ButtonLabel
-              loading={pendingAction === "place-order"}
-              loadingText="Placing Order..."
-            >
-              Place Order
-            </ButtonLabel>
-          </button>
-        </form>
-      </section>
-
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <p className="section-label">Order Summary</p>
-            <h2>Review commercial values before submission</h2>
-          </div>
-        </div>
-
-        <div className="order-overview-grid compact">
-          <article className="workflow-summary">
-            <span>Basket Lines</span>
-            <strong>{cart.length}</strong>
-          </article>
-          <article className="workflow-summary">
-            <span>Total Units</span>
-            <strong>{cartItemCount}</strong>
-          </article>
-          <article className="workflow-summary">
-            <span>Subtotal</span>
-            <strong>{formatMoney(cartSubtotal)}</strong>
-          </article>
-          <article className="workflow-summary">
-            <span>Order Value</span>
-            <strong>{formatMoney(cartTotal)}</strong>
-          </article>
-        </div>
-
-        <section className="cart-summary admin-summary">
-          <div className="order-items">
-            {cart.map((item) => (
-              <div key={item.productId} className="summary-item">
-                <span>
-                  {item.productName} x {item.quantity}
-                </span>
-                <strong>{formatMoney(item.subtotal)}</strong>
+          <section
+            className="order-view-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="view-order-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="order-view-modal-head">
+              <div>
+                <p className="section-label">Order Details</p>
+                <h3 id="view-order-title">Order #{viewOrderModal.orderId}</h3>
               </div>
-            ))}
-          </div>
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setViewOrderModal(null)}
+              >
+                Close
+              </button>
+            </div>
 
-          <div className="summary-row total">
-            <span>Total Amount</span>
-            <strong>{formatMoney(cartTotal)}</strong>
-          </div>
-        </section>
-      </section>
-    </main>
+            <div className="order-view-modal-grid">
+              <div>
+                <span>Customer</span>
+                <strong>{viewOrderModal.customerName || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Contact</span>
+                <strong>{viewOrderModal.contactNumber || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Email</span>
+                <strong>{viewOrderModal.email || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>{viewOrderModal.status || "N/A"}</strong>
+              </div>
+              <div className="order-view-modal-address">
+                <span>Delivery Address</span>
+                <strong>{viewOrderModal.deliveryAddress || "N/A"}</strong>
+              </div>
+            </div>
+
+            <div className="order-view-modal-items">
+              <div className="order-view-modal-items-head">
+                <span>Order Lines</span>
+                <strong>{viewOrderModal.items?.length || 0}</strong>
+              </div>
+
+              {(viewOrderModal.items || []).map((item, index) => (
+                <article
+                  key={item.orderItemId || `${item.productId}-${index}`}
+                  className="order-view-modal-item"
+                >
+                  <div>
+                    <strong>{item.productName || `Product #${item.productId}`}</strong>
+                    <span>Qty {item.quantity}</span>
+                  </div>
+                  <div className="order-view-modal-line-values">
+                    <span>{formatMoney(item.price)}</span>
+                    <strong>{formatMoney(item.subtotal)}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="order-view-modal-total">
+              <span>Total Amount</span>
+              <strong>{formatMoney(viewOrderModal.totalAmount)}</strong>
+            </div>
+          </section>
+        </div>
+      )}
+    </>
   );
 }
 

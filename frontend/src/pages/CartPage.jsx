@@ -1,9 +1,15 @@
 function CartPage({
+  actionInFlight,
+  ButtonLabel,
+  pendingAction,
   cart,
   cartItemCount,
   cartSubtotal,
   cartTotal,
   formatMoney,
+  customerForm,
+  setCustomerForm,
+  handleCreateOrder,
   handleCartQuantityChange,
   handleRemoveFromCart,
   handleClearCart,
@@ -18,7 +24,7 @@ function CartPage({
             <h2>Review selected inventory lines</h2>
             <p className="workflow-note">
               Adjust quantities, remove lines, and validate the basket before
-              moving to order creation.
+              placing the order.
             </p>
           </div>
         </div>
@@ -125,9 +131,10 @@ function CartPage({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPage("order-creation")}
+                  className="secondary-button"
+                  onClick={() => setPage("history")}
                 >
-                  Continue to Order
+                  View Order History
                 </button>
               </div>
             </section>
@@ -138,14 +145,81 @@ function CartPage({
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="section-label">Cart Summary</p>
-            <h2>Basket totals and next actions</h2>
+            <p className="section-label">Order Creation</p>
+            <h2>Capture customer and delivery details</h2>
+            <p className="workflow-note">
+              Complete details and place the order directly from the cart tab.
+            </p>
           </div>
         </div>
 
-        <div className="order-overview-grid compact">
+        <form
+          className="order-form enterprise-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleCreateOrder();
+          }}
+        >
+          <input
+            value={customerForm.customerName}
+            onChange={(e) =>
+              setCustomerForm({
+                ...customerForm,
+                customerName: e.target.value,
+              })
+            }
+            placeholder="Full Name"
+            required
+          />
+          <input
+            value={customerForm.email}
+            onChange={(e) =>
+              setCustomerForm({ ...customerForm, email: e.target.value })
+            }
+            type="email"
+            placeholder="Email Address"
+            required
+          />
+          <input
+            value={customerForm.contactNumber}
+            onChange={(e) =>
+              setCustomerForm({
+                ...customerForm,
+                contactNumber: e.target.value.replace(/\D/g, "").slice(0, 10),
+              })
+            }
+            placeholder="Contact Number"
+            inputMode="numeric"
+            maxLength={10}
+            pattern="[0-9]{10}"
+            title="Contact number must contain exactly 10 digits"
+            required
+          />
+          <textarea
+            value={customerForm.deliveryAddress}
+            onChange={(e) =>
+              setCustomerForm({
+                ...customerForm,
+                deliveryAddress: e.target.value,
+              })
+            }
+            placeholder="Delivery Address"
+            required
+          />
+
+          <button type="submit" disabled={actionInFlight || cart.length === 0}>
+            <ButtonLabel
+              loading={pendingAction === "place-order"}
+              loadingText="Placing Order..."
+            >
+              Place Order
+            </ButtonLabel>
+          </button>
+        </form>
+
+        <div className="order-overview-grid compact cart-order-overview-grid">
           <article className="workflow-summary">
-            <span>Distinct Items</span>
+            <span>Basket Lines</span>
             <strong>{cart.length}</strong>
           </article>
           <article className="workflow-summary">
@@ -157,7 +231,7 @@ function CartPage({
             <strong>{formatMoney(cartSubtotal)}</strong>
           </article>
           <article className="workflow-summary">
-            <span>Total</span>
+            <span>Order Value</span>
             <strong>{formatMoney(cartTotal)}</strong>
           </article>
         </div>

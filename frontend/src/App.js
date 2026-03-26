@@ -11,7 +11,7 @@ import {
 } from "./components/AppChrome";
 import CatalogPage from "./pages/CatalogPage";
 import CartPage from "./pages/CartPage";
-import OrderPage from "./pages/OrderPage";
+import HistoryPage from "./pages/HistoryPage";
 import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
@@ -56,6 +56,13 @@ const emptyInventoryIncreaseForm = {
   productId: "",
   quantity: "",
   referenceId: "",
+};
+
+const emptyInventoryEditForm = {
+  productId: "",
+  productName: "",
+  stockQuantity: "",
+  price: "",
 };
 
 async function requestJson(baseUrl, path, options = {}) {
@@ -148,6 +155,7 @@ function App() {
   const [inventoryIncreaseForm, setInventoryIncreaseForm] = useState(
     emptyInventoryIncreaseForm
   );
+  const [inventoryEditForm, setInventoryEditForm] = useState(emptyInventoryEditForm);
 
   // UI state for product adding
   const [addToCartQuantities, setAddToCartQuantities] = useState({});
@@ -260,10 +268,10 @@ function App() {
 
     if (cart.length > 0 && !orderId) {
       return {
-        page: "order-creation",
+        page: "cart",
         badge: "Place Order",
-        title: "Submit the order details",
-        detail: "Complete customer and delivery information, then place the order.",
+        title: "Complete customer details in cart",
+        detail: "Use the cart tab to enter customer information and place the order.",
       };
     }
 
@@ -420,6 +428,115 @@ function App() {
     }, "Inventory stock updated successfully.", "increase-stock");
   }
 
+  function handleStartEditInventoryItem(product) {
+    if (!product) {
+      return;
+    }
+
+    setInventoryEditForm({
+      productId: String(product.productId ?? ""),
+      productName: product.productName || "",
+      stockQuantity: String(product.stockQuantity ?? ""),
+      price: String(product.price ?? ""),
+    });
+    setNotice(`Editing product #${product.productId}`);
+    setError("");
+  }
+
+  function handleCancelEditInventoryItem() {
+    setInventoryEditForm(emptyInventoryEditForm);
+  }
+
+  async function handleUpdateInventoryItem() {
+    if (!inventoryEditForm.productId || !inventoryEditForm.productName) {
+      setError("Product ID and name are required for edit");
+      return;
+    }
+
+    if (inventoryEditForm.stockQuantity === "" || inventoryEditForm.price === "") {
+      setError("Stock quantity and price are required for edit");
+      return;
+    }
+
+    await runAction(async () => {
+      const productId = Number(inventoryEditForm.productId);
+      const payload = {
+        productId,
+        productName: inventoryEditForm.productName,
+        stockQuantity: Number(inventoryEditForm.stockQuantity),
+        price: Number(inventoryEditForm.price),
+      };
+
+      const endpointAttempts = [
+        { path: `/inventory/products/${productId}`, method: "PUT", body: payload },
+        { path: "/inventory/products", method: "PUT", body: payload },
+        { path: `/inventory/update-product/${productId}`, method: "PUT", body: payload },
+      ];
+
+      let updated = false;
+      for (const attempt of endpointAttempts) {
+        try {
+          await api(attempt.path, {
+            method: attempt.method,
+            body: JSON.stringify(attempt.body),
+          });
+          updated = true;
+          break;
+        } catch {
+          // Continue to next endpoint variation.
+        }
+      }
+
+      if (!updated) {
+        throw new Error("Unable to update inventory item. Please verify update endpoint.");
+      }
+
+      setInventoryEditForm(emptyInventoryEditForm);
+      await refreshProducts();
+      await handleLoadStockUpdates(true);
+    }, "Inventory item updated successfully.", "edit-product");
+  }
+
+  async function handleDeleteInventoryItem(productId) {
+    if (!productId) {
+      setError("Product ID is required for delete");
+      return;
+    }
+
+    if (!window.confirm(`Delete product #${productId}? This cannot be undone.`)) {
+      return;
+    }
+
+    await runAction(async () => {
+      const endpointAttempts = [
+        { path: `/inventory/products/${productId}`, method: "DELETE" },
+        { path: `/inventory/delete-product/${productId}`, method: "DELETE" },
+      ];
+
+      let deleted = false;
+      for (const attempt of endpointAttempts) {
+        try {
+          await api(attempt.path, { method: attempt.method });
+          deleted = true;
+          break;
+        } catch {
+          // Continue to next endpoint variation.
+        }
+      }
+
+      if (!deleted) {
+        throw new Error("Unable to delete inventory item. Please verify delete endpoint.");
+      }
+
+      if (String(inventoryEditForm.productId) === String(productId)) {
+        setInventoryEditForm(emptyInventoryEditForm);
+      }
+
+      await refreshProducts();
+      await handleLoadStockUpdates(true);
+    }, "Inventory item deleted successfully.", "delete-product");
+  }
+
   function handleRemoveFromCart(productId) {
     setCart(cart.filter((item) => item.productId !== productId));
   }
@@ -468,6 +585,12 @@ function App() {
       return;
     }
 
+    const normalizedContact = String(customerForm.contactNumber || "").replace(/\D/g, "");
+    if (normalizedContact.length !== 10) {
+      setError("Contact number must contain exactly 10 digits");
+      return;
+    }
+
     if (cart.length === 0) {
       setError("Your cart is empty");
       return;
@@ -487,7 +610,7 @@ function App() {
         body: JSON.stringify({
           customerName: customerForm.customerName,
           email: customerForm.email,
-          contactNumber: customerForm.contactNumber,
+          contactNumber: normalizedContact,
           deliveryAddress: customerForm.deliveryAddress,
           totalAmount: cartTotal,
           items: orderItems.map((item) => ({
@@ -551,6 +674,139 @@ function App() {
       const orders = await api("/orders");
       setAllOrders(Array.isArray(orders) ? orders : []);
     }, "All orders loaded.", "load-all-orders");
+  }
+
+  async function handleViewOrderDetails(orderSummary) {
+    if (!orderSummary?.orderId) {
+      setError("Order ID is required");
+      return null;
+    }
+
+    if (pendingAction) {
+      return null;
+    }
+
+    setNotice("");
+    setError("");
+    setPendingAction("load-order-details");
+
+    try {
+      let detailedOrder = orderSummary;
+
+      const detailEndpoints = [
+        `/orders/${orderSummary.orderId}`,
+        `/orders/order/${orderSummary.orderId}`,
+        `/orders/details/${orderSummary.orderId}`,
+      ];
+
+      for (const endpoint of detailEndpoints) {
+        try {
+          const loadedOrder = await api(endpoint);
+          if (loadedOrder) {
+            detailedOrder = loadedOrder;
+            break;
+          }
+        } catch {
+          // Continue trying known endpoint variations.
+        }
+      }
+
+      const sourceItems =
+        (Array.isArray(detailedOrder.items) && detailedOrder.items) ||
+        (Array.isArray(detailedOrder.orderItems) && detailedOrder.orderItems) ||
+        (Array.isArray(detailedOrder.lineItems) && detailedOrder.lineItems) ||
+        (Array.isArray(detailedOrder.orderLines) && detailedOrder.orderLines) ||
+        (Array.isArray(orderSummary.items) && orderSummary.items) ||
+        (Array.isArray(orderSummary.orderItems) && orderSummary.orderItems) ||
+        (Array.isArray(orderSummary.lineItems) && orderSummary.lineItems) ||
+        (Array.isArray(orderSummary.orderLines) && orderSummary.orderLines) ||
+        [];
+
+      const normalizedItems = sourceItems.map((item) => {
+        const quantity = Number(item.quantity ?? item.qty ?? 0);
+        const unitPrice = Number(
+          item.price ?? item.unitPrice ?? item.productPrice ?? item?.product?.price ?? 0,
+        );
+        const subtotal = Number(item.subtotal ?? quantity * unitPrice);
+
+        return {
+          ...item,
+          productId: item.productId ?? item.id ?? item?.product?.productId ?? item?.product?.id,
+          productName:
+            item.productName ?? item.name ?? item?.product?.productName ?? item?.product?.name,
+          quantity,
+          price: unitPrice,
+          subtotal: Number.isNaN(subtotal) ? 0 : subtotal,
+        };
+      });
+
+      const subtotalFromLines = normalizedItems.reduce(
+        (sum, item) => sum + Number(item.subtotal || 0),
+        0,
+      );
+
+      let paymentStatus =
+        detailedOrder.paymentStatus ||
+        detailedOrder?.payment?.paymentStatus ||
+        orderSummary.paymentStatus ||
+        "";
+
+      let shipmentStatus =
+        detailedOrder.shipmentStatus ||
+        detailedOrder?.shipment?.shipmentStatus ||
+        orderSummary.shipmentStatus ||
+        "";
+
+      try {
+        const payment = await api(`/payments/${orderSummary.orderId}`);
+        if (payment?.paymentStatus) {
+          paymentStatus = payment.paymentStatus;
+        }
+      } catch {
+        // Keep fallback payment status when payment record is unavailable.
+      }
+
+      try {
+        const shipment = await api(`/shipping/${orderSummary.orderId}`);
+        if (shipment?.shipmentStatus) {
+          shipmentStatus = shipment.shipmentStatus;
+        }
+      } catch {
+        // Keep fallback shipment status when shipment record is unavailable.
+      }
+
+      const normalizedOrder = {
+        orderId: detailedOrder.orderId ?? orderSummary.orderId,
+        customerName: detailedOrder.customerName || orderSummary.customerName || "",
+        email: detailedOrder.email || orderSummary.email || "",
+        contactNumber: detailedOrder.contactNumber || orderSummary.contactNumber || "",
+        deliveryAddress:
+          detailedOrder.deliveryAddress || orderSummary.deliveryAddress || "",
+        status: detailedOrder.status || orderSummary.status || "",
+        createdAt:
+          detailedOrder.createdAt ||
+          detailedOrder.orderDate ||
+          orderSummary.createdAt ||
+          orderSummary.orderDate ||
+          "",
+        totalAmount: Number(
+          detailedOrder.totalAmount ??
+            detailedOrder.orderTotal ??
+            orderSummary.totalAmount ??
+            orderSummary.orderTotal ??
+            subtotalFromLines,
+        ),
+        paymentStatus,
+        shipmentStatus,
+        items: normalizedItems,
+      };
+      return normalizedOrder;
+    } catch (orderError) {
+      setError(orderError.message);
+      return null;
+    } finally {
+      setPendingAction("");
+    }
   }
 
   // Payment handlers
@@ -654,6 +910,64 @@ function App() {
 
       setAllPayments(mappedPayments);
     }, "All payments loaded.", "load-all-payments");
+  }
+
+  async function handleViewPaymentDetails(paymentSummary) {
+    if (!paymentSummary) {
+      setError("Payment details are unavailable");
+      return null;
+    }
+
+    if (pendingAction) {
+      return null;
+    }
+
+    setError("");
+    setPendingAction("load-payment-details");
+
+    try {
+      let detailedPayment = paymentSummary;
+      const endpointCandidates = [];
+
+      if (paymentSummary.paymentId) {
+        endpointCandidates.push(`/payments/payment/${paymentSummary.paymentId}`);
+        endpointCandidates.push(`/payments/${paymentSummary.paymentId}`);
+      }
+      if (paymentSummary.orderId) {
+        endpointCandidates.push(`/payments/${paymentSummary.orderId}`);
+      }
+
+      for (const endpoint of endpointCandidates) {
+        try {
+          const loadedPayment = await api(endpoint);
+          if (loadedPayment) {
+            detailedPayment = loadedPayment;
+            break;
+          }
+        } catch {
+          // Continue trying known payment endpoint variations.
+        }
+      }
+
+      return {
+        paymentId: detailedPayment.paymentId ?? paymentSummary.paymentId,
+        orderId: detailedPayment.orderId ?? paymentSummary.orderId,
+        paymentMethod: detailedPayment.paymentMethod ?? paymentSummary.paymentMethod,
+        amount: Number(detailedPayment.amount ?? paymentSummary.amount ?? 0),
+        paymentStatus: detailedPayment.paymentStatus ?? paymentSummary.paymentStatus,
+        paymentDate:
+          detailedPayment.paymentDate ||
+          detailedPayment.createdAt ||
+          paymentSummary.paymentDate ||
+          paymentSummary.createdAt ||
+          "",
+      };
+    } catch (paymentError) {
+      setError(paymentError.message);
+      return null;
+    } finally {
+      setPendingAction("");
+    }
   }
 
   function handlePaymentMethodChange(method) {
@@ -829,18 +1143,86 @@ function App() {
     }, "All shipments loaded.", "load-all-shipments");
   }
 
+  async function handleViewShipmentDetails(shipmentSummary) {
+    if (!shipmentSummary) {
+      setError("Shipment details are unavailable");
+      return null;
+    }
+
+    if (pendingAction) {
+      return null;
+    }
+
+    setError("");
+    setPendingAction("load-shipment-details");
+
+    try {
+      let detailedShipment = shipmentSummary;
+      const endpointCandidates = [];
+
+      if (shipmentSummary.orderId) {
+        endpointCandidates.push(`/shipping/${shipmentSummary.orderId}`);
+      }
+      if (shipmentSummary.shipmentId) {
+        endpointCandidates.push(`/shipping/shipment/${shipmentSummary.shipmentId}`);
+      }
+
+      for (const endpoint of endpointCandidates) {
+        try {
+          const loadedShipment = await api(endpoint);
+          if (loadedShipment) {
+            detailedShipment = loadedShipment;
+            break;
+          }
+        } catch {
+          // Continue trying known shipment endpoint variations.
+        }
+      }
+
+      return {
+        shipmentId: detailedShipment.shipmentId ?? shipmentSummary.shipmentId,
+        orderId: detailedShipment.orderId ?? shipmentSummary.orderId,
+        customerName: detailedShipment.customerName ?? shipmentSummary.customerName,
+        contactNumber: detailedShipment.contactNumber ?? shipmentSummary.contactNumber,
+        email: detailedShipment.email ?? shipmentSummary.email,
+        deliveryAddress: detailedShipment.deliveryAddress ?? shipmentSummary.deliveryAddress,
+        shipmentStatus: detailedShipment.shipmentStatus ?? shipmentSummary.shipmentStatus,
+        deliveryPerson: detailedShipment.deliveryPerson ?? shipmentSummary.deliveryPerson,
+        shipmentDate:
+          detailedShipment.shipmentDate || detailedShipment.createdAt || shipmentSummary.shipmentDate || "",
+        estimatedDelivery:
+          detailedShipment.estimatedDelivery || shipmentSummary.estimatedDelivery || "",
+      };
+    } catch (shipmentError) {
+      setError(shipmentError.message);
+      return null;
+    } finally {
+      setPendingAction("");
+    }
+  }
+
   return (
     <div className="app-shell">
       <ToastStack notice={notice} error={error} />
 
-      <PageTabs
-        page={page}
-        nextStep={nextStep}
-        cartItemCount={cartItemCount}
-        orderId={orderId}
-        cartLength={cart.length}
-        onChange={setPage}
-      />
+      <section className="app-topbar" aria-label="System Header and Navigation">
+        <header className="brand-header" aria-label="System Header">
+          <div className="brand-header-mark">S</div>
+          <div className="brand-header-copy">
+            <p className="brand-header-label">Management System</p>
+            <h1>SoleX Order Control</h1>
+          </div>
+        </header>
+
+        <PageTabs
+          page={page}
+          nextStep={nextStep}
+          cartItemCount={cartItemCount}
+          orderId={orderId}
+          cartLength={cart.length}
+          onChange={setPage}
+        />
+      </section>
 
       <FlowBanner nextStep={nextStep} />
 
@@ -876,6 +1258,12 @@ function App() {
           inventoryIncreaseForm={inventoryIncreaseForm}
           setInventoryIncreaseForm={setInventoryIncreaseForm}
           handleIncreaseInventoryStock={handleIncreaseInventoryStock}
+          inventoryEditForm={inventoryEditForm}
+          setInventoryEditForm={setInventoryEditForm}
+          handleStartEditInventoryItem={handleStartEditInventoryItem}
+          handleCancelEditInventoryItem={handleCancelEditInventoryItem}
+          handleUpdateInventoryItem={handleUpdateInventoryItem}
+          handleDeleteInventoryItem={handleDeleteInventoryItem}
           handleLoadStockUpdates={handleLoadStockUpdates}
           pendingAction={pendingAction}
           stockUpdates={stockUpdates}
@@ -885,11 +1273,17 @@ function App() {
 
       {page === "cart" && (
         <CartPage
+          actionInFlight={actionInFlight}
+          ButtonLabel={ButtonLabel}
+          pendingAction={pendingAction}
           cart={cart}
           cartItemCount={cartItemCount}
           cartSubtotal={cartSubtotal}
           cartTotal={cartTotal}
           formatMoney={formatMoney}
+          customerForm={customerForm}
+          setCustomerForm={setCustomerForm}
+          handleCreateOrder={handleCreateOrder}
           handleCartQuantityChange={handleCartQuantityChange}
           handleRemoveFromCart={handleRemoveFromCart}
           handleClearCart={handleClearCart}
@@ -897,28 +1291,29 @@ function App() {
         />
       )}
 
-      {page === "order-creation" && (
-        <OrderPage
+      {page === "history" && (
+        <HistoryPage
           actionInFlight={actionInFlight}
           ButtonLabel={ButtonLabel}
           TableSkeleton={TableSkeleton}
+          pendingAction={pendingAction}
+          formatMoney={formatMoney}
           allOrders={allOrders}
           orderSearchQuery={orderSearchQuery}
           setOrderSearchQuery={setOrderSearchQuery}
           handleLoadAllOrders={handleLoadAllOrders}
-          pendingAction={pendingAction}
-          formatMoney={formatMoney}
-          setOrderId={setOrderId}
-          setCurrentOrderSnapshot={setCurrentOrderSnapshot}
-          setPage={setPage}
-          setNotice={setNotice}
-          customerForm={customerForm}
-          setCustomerForm={setCustomerForm}
-          handleCreateOrder={handleCreateOrder}
-          cart={cart}
-          cartItemCount={cartItemCount}
-          cartSubtotal={cartSubtotal}
-          cartTotal={cartTotal}
+          handleViewOrderDetails={handleViewOrderDetails}
+          allPayments={allPayments}
+          paymentSearchQuery={paymentSearchQuery}
+          setPaymentSearchQuery={setPaymentSearchQuery}
+          handleLoadAllPayments={handleLoadAllPayments}
+          handleViewPaymentDetails={handleViewPaymentDetails}
+          allShipments={allShipments}
+          shipmentSearchQuery={shipmentSearchQuery}
+          setShipmentSearchQuery={setShipmentSearchQuery}
+          handleLoadAllShipments={handleLoadAllShipments}
+          handleViewShipmentDetails={handleViewShipmentDetails}
+          formatDate={formatDate}
         />
       )}
 
@@ -926,19 +1321,10 @@ function App() {
         <PaymentPage
           actionInFlight={actionInFlight}
           ButtonLabel={ButtonLabel}
-          TableSkeleton={TableSkeleton}
           DetailCardSkeleton={DetailCardSkeleton}
-          allPayments={allPayments}
-          paymentSearchQuery={paymentSearchQuery}
-          setPaymentSearchQuery={setPaymentSearchQuery}
-          handleLoadAllPayments={handleLoadAllPayments}
           pendingAction={pendingAction}
           formatMoney={formatMoney}
-          setPaymentData={setPaymentData}
-          setOrderId={setOrderId}
-          setCurrentOrderSnapshot={setCurrentOrderSnapshot}
           setPage={setPage}
-          setNotice={setNotice}
           currentOrderSnapshot={currentOrderSnapshot}
           orderId={orderId}
           expectedPaymentAmount={expectedPaymentAmount}
@@ -1796,109 +2182,6 @@ function App() {
       {/* SHIPMENT PAGE */}
       {page === "shipment" && (
         <main className="page-grid">
-          <section className="panel full-width">
-            <div className="panel-heading">
-              <div>
-                <p className="section-label">All Shipments</p>
-                <h2>View shipment history</h2>
-              </div>
-            </div>
-
-            <div className="shipment-action-row">
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={handleLoadAllShipments}
-                disabled={actionInFlight}
-              >
-                <ButtonLabel
-                  loading={pendingAction === "load-all-shipments"}
-                  loadingText="Loading Shipments..."
-                >
-                  Load All Shipments
-                </ButtonLabel>
-              </button>
-            </div>
-
-            {pendingAction === "load-all-shipments" && (
-              <TableSkeleton columns={6} rows={4} className="shipment-search-results" />
-            )}
-
-            {allShipments.length > 0 && (
-              <>
-                <input
-                  type="text"
-                  value={shipmentSearchQuery}
-                  onChange={(e) => setShipmentSearchQuery(e.target.value)}
-                  placeholder="Search by shipment ID, order ID, customer, status, or delivery person"
-                />
-
-                <div className="shipment-search-results">
-                  <div className="shipment-table shipment-table-head">
-                    <span>Shipment ID</span>
-                    <span>Order ID</span>
-                    <span>Customer</span>
-                    <span>Status</span>
-                    <span>Delivery Person</span>
-                    <span>Action</span>
-                  </div>
-
-                  {allShipments
-                    .filter((shipment) => {
-                      const query = shipmentSearchQuery.trim().toLowerCase();
-                      if (!query) {
-                        return true;
-                      }
-
-                      return (
-                        String(shipment.shipmentId).includes(query) ||
-                        String(shipment.orderId).includes(query) ||
-                        (shipment.customerName || "").toLowerCase().includes(query) ||
-                        (shipment.shipmentStatus || "").toLowerCase().includes(query) ||
-                        (shipment.deliveryPerson || "").toLowerCase().includes(query)
-                      );
-                    })
-                    .map((shipment) => (
-                      <article
-                        key={shipment.shipmentId}
-                        className="shipment-table shipment-table-row"
-                      >
-                        <span className="shipment-table-id">#{shipment.shipmentId}</span>
-                        <span>#{shipment.orderId}</span>
-                        <span>{shipment.customerName || "N/A"}</span>
-                        <span className="status-pill">{shipment.shipmentStatus}</span>
-                        <span>{shipment.deliveryPerson || "Unassigned"}</span>
-                        <div className="shipment-table-action">
-                          <button
-                            type="button"
-                            className="ghost-button"
-                            onClick={() => {
-                              setShipmentData(shipment);
-                              setShipmentForm({
-                                orderId: String(shipment.orderId || ""),
-                                customerName: shipment.customerName || "",
-                                contactNumber: shipment.contactNumber || "",
-                                deliveryAddress: shipment.deliveryAddress || "",
-                                email: shipment.email || "",
-                                shipmentStatus: shipment.shipmentStatus || "SHIPPED",
-                              });
-                              setDeliveryPersonForm(shipment.deliveryPerson || "");
-                              setShipmentStatusFormByOrder("");
-                              setOrderId(shipment.orderId ?? orderId ?? null);
-                              setPage("shipment");
-                              setNotice(`Loaded shipment #${shipment.shipmentId}`);
-                            }}
-                          >
-                            View
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                </div>
-              </>
-            )}
-          </section>
-
           <section className="panel full-width">
             <div className="panel-heading">
               <div>
