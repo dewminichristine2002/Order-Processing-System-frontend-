@@ -16,11 +16,6 @@ import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
 const DEFAULT_API = "";
-// Production: Use local routes which proxy to backend services via staticwebapp.config.json
-const INVENTORY_API = process.env.REACT_APP_INVENTORY_API || "";
-const ORDERS_API = process.env.REACT_APP_ORDERS_API || "";
-const PAYMENTS_API = process.env.REACT_APP_PAYMENTS_API || "";
-const SHIPPING_API = process.env.REACT_APP_SHIPPING_API || "";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
 const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
