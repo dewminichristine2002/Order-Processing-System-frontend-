@@ -16,12 +16,11 @@ import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
 const DEFAULT_API = "";
-// Use environment variables from Azure (with REACT_APP_ prefix)
-// Fallback to hardcoded URLs if not set
-const INVENTORY_API = process.env.REACT_APP_INVENTORY_API || "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io";
-const ORDERS_API = process.env.REACT_APP_ORDERS_API || "https://order-service.greenisland-18bb041c.southeastasia.azurecontainerapps.io";
-const PAYMENTS_API = process.env.REACT_APP_PAYMENTS_API || "https://payment.gentletree-6b17349b.southeastasia.azurecontainerapps.io";
-const SHIPPING_API = process.env.REACT_APP_SHIPPING_API || "https://shipping-service.orangeglacier-dfccfaea.southeastasia.azurecontainerapps.io";
+// Local routes will be proxied by Azure Static Web Apps to backend services
+const INVENTORY_API = "";
+const ORDERS_API = "";
+const PAYMENTS_API = "";
+const SHIPPING_API = "";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
 const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
@@ -212,20 +211,9 @@ function App() {
   const actionInFlight = Boolean(pendingAction);
 
   async function api(path, options = {}) {
-    // Route to correct backend service based on path
-    let baseUrl = apiBase;
-    
-    if (path.startsWith("/inventory")) {
-      baseUrl = INVENTORY_API;
-    } else if (path.startsWith("/orders")) {
-      baseUrl = ORDERS_API;
-    } else if (path.startsWith("/payments")) {
-      baseUrl = PAYMENTS_API;
-    } else if (path.startsWith("/shipping")) {
-      baseUrl = SHIPPING_API;
-    }
-    
-    return requestJson(baseUrl, path, options);
+    // All requests go to local routes
+    // Azure Static Web Apps will proxy to backend services via staticwebapp.config.json
+    return requestJson("", path, options);
   }
 
   const refreshProducts = useCallback(async (showSpinner = false) => {

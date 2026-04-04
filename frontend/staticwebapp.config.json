@@ -1,6 +1,30 @@
 {
   "routes": [
     {
+      "route": "/inventory/*",
+      "proxy": {
+        "upstreamPattern": "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io/inventory{path}"
+      }
+    },
+    {
+      "route": "/orders/*",
+      "proxy": {
+        "upstreamPattern": "https://order-service.greenisland-18bb041c.southeastasia.azurecontainerapps.io/orders{path}"
+      }
+    },
+    {
+      "route": "/payments/*",
+      "proxy": {
+        "upstreamPattern": "https://payment.gentletree-6b17349b.southeastasia.azurecontainerapps.io/payments{path}"
+      }
+    },
+    {
+      "route": "/shipping/*",
+      "proxy": {
+        "upstreamPattern": "https://shipping-service.orangeglacier-dfccfaea.southeastasia.azurecontainerapps.io/shipping{path}"
+      }
+    },
+    {
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200
@@ -9,8 +33,5 @@
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": ["/images/*", "/css/*", "/js/*", "/*.json", "/*.txt"]
-  },
-  "mimeTypes": {
-    ".json": "text/json"
   }
 }
