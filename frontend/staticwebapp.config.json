@@ -1,34 +1,6 @@
 {
   "routes": [
     {
-      "route": "/inventory*",
-      "proxy": {
-        "upstreamPattern": "/inventory(?P<path>.*)"
-      },
-      "allowedRoles": []
-    },
-    {
-      "route": "/orders*",
-      "proxy": {
-        "upstreamPattern": "/orders(?P<path>.*)"
-      },
-      "allowedRoles": []
-    },
-    {
-      "route": "/payments*",
-      "proxy": {
-        "upstreamPattern": "/payments(?P<path>.*)"
-      },
-      "allowedRoles": []
-    },
-    {
-      "route": "/shipping*",
-      "proxy": {
-        "upstreamPattern": "/shipping(?P<path>.*)"
-      },
-      "allowedRoles": []
-    },
-    {
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200

@@ -16,7 +16,8 @@ import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
 const DEFAULT_API = "";
-const INVENTORY_API = process.env.REACT_APP_INVENTORY_API || process.env.INVENTORY_SERVICE_URL || "";
+// For production, use the hardcoded URLs from setupProxy.js as fallback
+const INVENTORY_API = process.env.REACT_APP_INVENTORY_API || "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
 const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
@@ -216,8 +217,15 @@ function App() {
     }
 
     try {
-      const apiUrl = INVENTORY_API || apiBase;
-      const productsResult = await requestJson(apiUrl, "/inventory");
+      // For production: use full API URL directly
+      const inventoryUrl = INVENTORY_API ? `${INVENTORY_API}/inventory` : "/inventory";
+      const response = await fetch(inventoryUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const productsResult = await response.json();
       setProducts(Array.isArray(productsResult) ? productsResult : []);
     } catch (err) {
       setError(`Failed to load products: ${err.message}`);
@@ -226,7 +234,7 @@ function App() {
         setLoading(false);
       }
     }
-  }, [apiBase]);
+  }, []);
 
   // Load products on mount
   useEffect(() => {
