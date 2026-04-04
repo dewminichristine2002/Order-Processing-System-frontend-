@@ -16,8 +16,11 @@ import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
 const DEFAULT_API = "";
-// For production, use the hardcoded URLs from setupProxy.js as fallback
+// Backend service URLs for production Azure deployment
 const INVENTORY_API = process.env.REACT_APP_INVENTORY_API || "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io";
+const ORDERS_API = process.env.REACT_APP_ORDERS_API || "https://order-service.greenisland-18bb041c.southeastasia.azurecontainerapps.io";
+const PAYMENTS_API = process.env.REACT_APP_PAYMENTS_API || "https://payment.gentletree-6b17349b.southeastasia.azurecontainerapps.io";
+const SHIPPING_API = process.env.REACT_APP_SHIPPING_API || "https://shipping-service.orangeglacier-dfccfaea.southeastasia.azurecontainerapps.io";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
 const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
@@ -208,7 +211,20 @@ function App() {
   const actionInFlight = Boolean(pendingAction);
 
   async function api(path, options = {}) {
-    return requestJson(apiBase, path, options);
+    // Route to the correct backend service based on the path
+    let baseUrl = apiBase;
+    
+    if (path.startsWith("/inventory")) {
+      baseUrl = INVENTORY_API;
+    } else if (path.startsWith("/orders")) {
+      baseUrl = ORDERS_API;
+    } else if (path.startsWith("/payments")) {
+      baseUrl = PAYMENTS_API;
+    } else if (path.startsWith("/shipping")) {
+      baseUrl = SHIPPING_API;
+    }
+    
+    return requestJson(baseUrl, path, options);
   }
 
   const refreshProducts = useCallback(async (showSpinner = false) => {
@@ -217,15 +233,8 @@ function App() {
     }
 
     try {
-      // For production: use full API URL directly
-      const inventoryUrl = INVENTORY_API ? `${INVENTORY_API}/inventory` : "/inventory";
-      const response = await fetch(inventoryUrl);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const productsResult = await response.json();
+      const baseUrl = apiBase || INVENTORY_API;
+      const productsResult = await requestJson(baseUrl, "/inventory");
       setProducts(Array.isArray(productsResult) ? productsResult : []);
     } catch (err) {
       setError(`Failed to load products: ${err.message}`);
@@ -234,7 +243,7 @@ function App() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [apiBase]);
 
   // Load products on mount
   useEffect(() => {
