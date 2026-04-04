@@ -16,11 +16,6 @@ import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
 const DEFAULT_API = "";
-// Local routes will be proxied by Azure Static Web Apps to backend services
-const INVENTORY_API = "";
-const ORDERS_API = "";
-const PAYMENTS_API = "";
-const SHIPPING_API = "";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
 const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
