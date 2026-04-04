@@ -1,54 +1,6 @@
 {
   "routes": [
     {
-      "route": "/inventory",
-      "proxy": {
-        "upstreamPattern": "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io/inventory"
-      }
-    },
-    {
-      "route": "/inventory/*",
-      "proxy": {
-        "upstreamPattern": "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io/inventory{path}"
-      }
-    },
-    {
-      "route": "/orders",
-      "proxy": {
-        "upstreamPattern": "https://order-service.greenisland-18bb041c.southeastasia.azurecontainerapps.io/orders"
-      }
-    },
-    {
-      "route": "/orders/*",
-      "proxy": {
-        "upstreamPattern": "https://order-service.greenisland-18bb041c.southeastasia.azurecontainerapps.io/orders{path}"
-      }
-    },
-    {
-      "route": "/payments",
-      "proxy": {
-        "upstreamPattern": "https://payment.gentletree-6b17349b.southeastasia.azurecontainerapps.io/payments"
-      }
-    },
-    {
-      "route": "/payments/*",
-      "proxy": {
-        "upstreamPattern": "https://payment.gentletree-6b17349b.southeastasia.azurecontainerapps.io/payments{path}"
-      }
-    },
-    {
-      "route": "/shipping",
-      "proxy": {
-        "upstreamPattern": "https://shipping-service.orangeglacier-dfccfaea.southeastasia.azurecontainerapps.io/shipping"
-      }
-    },
-    {
-      "route": "/shipping/*",
-      "proxy": {
-        "upstreamPattern": "https://shipping-service.orangeglacier-dfccfaea.southeastasia.azurecontainerapps.io/shipping{path}"
-      }
-    },
-    {
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200

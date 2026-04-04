@@ -16,6 +16,11 @@ import PaymentPage from "./pages/PaymentPage";
 import InventoryPage from "./pages/InventoryPage";
 
 const DEFAULT_API = "";
+// Direct connections to backend services
+const INVENTORY_SERVICE = "https://inventory-service.nicewave-b507020a.eastasia.azurecontainerapps.io";
+const ORDERS_SERVICE = "https://order-service.greenisland-18bb041c.southeastasia.azurecontainerapps.io";
+const PAYMENTS_SERVICE = "https://payment.gentletree-6b17349b.southeastasia.azurecontainerapps.io";
+const SHIPPING_SERVICE = "https://shipping-service.orangeglacier-dfccfaea.southeastasia.azurecontainerapps.io";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
 const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
@@ -206,9 +211,20 @@ function App() {
   const actionInFlight = Boolean(pendingAction);
 
   async function api(path, options = {}) {
-    // All requests go to local routes
-    // Azure Static Web Apps will proxy to backend services via staticwebapp.config.json
-    return requestJson("", path, options);
+    // Route to correct backend service based on path
+    let baseUrl = DEFAULT_API;
+    
+    if (path.startsWith("/inventory")) {
+      baseUrl = INVENTORY_SERVICE;
+    } else if (path.startsWith("/orders")) {
+      baseUrl = ORDERS_SERVICE;
+    } else if (path.startsWith("/payments")) {
+      baseUrl = PAYMENTS_SERVICE;
+    } else if (path.startsWith("/shipping")) {
+      baseUrl = SHIPPING_SERVICE;
+    }
+    
+    return requestJson(baseUrl, path, options);
   }
 
   const refreshProducts = useCallback(async (showSpinner = false) => {
