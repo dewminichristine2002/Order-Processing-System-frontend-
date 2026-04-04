@@ -15,9 +15,21 @@ function OrderPage({
   const [viewOrderModal, setViewOrderModal] = useState(null);
 
   async function handleOpenOrderModal(order) {
+    if (!order) return;
+
+    setViewOrderModal({
+      ...order,
+      items: Array.isArray(order.items) ? order.items : [],
+      isLoadingDetails: true,
+    });
+
     const loadedOrder = await handleViewOrderDetails(order);
     if (loadedOrder) {
-      setViewOrderModal(loadedOrder);
+      setViewOrderModal({ ...loadedOrder, isLoadingDetails: false });
+    } else {
+      setViewOrderModal((current) =>
+        current ? { ...current, isLoadingDetails: false } : current,
+      );
     }
   }
 
@@ -132,13 +144,18 @@ function OrderPage({
                 <p className="section-label">Order Details</p>
                 <h3 id="view-order-title">Order #{viewOrderModal.orderId}</h3>
               </div>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => setViewOrderModal(null)}
-              >
-                Close
-              </button>
+              <div className="order-view-modal-actions">
+                {viewOrderModal.isLoadingDetails ? (
+                  <span className="modal-loading-note">Loading latest details...</span>
+                ) : null}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => setViewOrderModal(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="order-view-modal-grid">
@@ -157,6 +174,14 @@ function OrderPage({
               <div>
                 <span>Status</span>
                 <strong>{viewOrderModal.status || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Payment Status</span>
+                <strong>{viewOrderModal.paymentStatus || "N/A"}</strong>
+              </div>
+              <div>
+                <span>Shipping Status</span>
+                <strong>{viewOrderModal.shipmentStatus || "N/A"}</strong>
               </div>
               <div className="order-view-modal-address">
                 <span>Delivery Address</span>

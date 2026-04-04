@@ -1,9 +1,12 @@
+import { useRef } from "react";
+
 function InventoryPage({
   actionInFlight,
   ButtonLabel,
   TableSkeleton,
   products,
   formatMoney,
+  imageUploadEnabled,
   inventorySearchQuery,
   setInventorySearchQuery,
   inventoryCreateForm,
@@ -37,6 +40,17 @@ function InventoryPage({
   const selectedProduct = products.find(
     (product) => String(product.productId) === inventoryIncreaseForm.productId
   );
+  const restockSectionRef = useRef(null);
+  const editSectionRef = useRef(null);
+
+  const totalProducts = filteredProducts.length;
+  const totalUnits = filteredProducts.reduce(
+    (sum, product) => sum + Number(product.stockQuantity || 0),
+    0,
+  );
+  const lowStockCount = filteredProducts.filter(
+    (product) => Number(product.stockQuantity || 0) <= 10
+  ).length;
 
   return (
     <main className="page-grid">
@@ -51,7 +65,7 @@ function InventoryPage({
         </div>
       </section>
 
-      <section className="panel">
+      <section className="panel" ref={restockSectionRef}>
         <div className="panel-heading">
           <div>
             <p className="section-label">Create Product</p>
@@ -90,6 +104,48 @@ function InventoryPage({
             placeholder="Product Name"
             required
           />
+          <input
+            type="url"
+            value={inventoryCreateForm.imageUrl}
+            onChange={(event) =>
+              setInventoryCreateForm({
+                ...inventoryCreateForm,
+                imageUrl: event.target.value,
+              })
+            }
+            placeholder="Image URL (optional)"
+          />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(event) => {
+              const file = event.target.files?.[0] || null;
+              setInventoryCreateForm((prev) => {
+                if (prev.imagePreviewUrl) {
+                  URL.revokeObjectURL(prev.imagePreviewUrl);
+                }
+                return {
+                  ...prev,
+                  imageFile: file,
+                  imagePreviewUrl: file ? URL.createObjectURL(file) : "",
+                };
+              });
+            }}
+          />
+          {!imageUploadEnabled && (
+            <p className="form-hint">
+              Image upload is not configured. Paste an image URL instead.
+            </p>
+          )}
+          {(inventoryCreateForm.imagePreviewUrl || inventoryCreateForm.imageUrl) && (
+            <div className="image-preview">
+              <img
+                src={inventoryCreateForm.imagePreviewUrl || inventoryCreateForm.imageUrl}
+                alt="Selected product"
+                loading="lazy"
+              />
+            </div>
+          )}
           <input
             type="number"
             min="0"
@@ -213,7 +269,7 @@ function InventoryPage({
         )}
       </section>
 
-      <section className="panel full-width">
+      <section className="panel" ref={editSectionRef}>
         <div className="panel-heading">
           <div>
             <p className="section-label">Edit Product</p>
@@ -253,17 +309,15 @@ function InventoryPage({
             required
           />
           <input
-            type="number"
-            min="0"
-            value={inventoryEditForm.stockQuantity}
+            type="url"
+            value={inventoryEditForm.imageUrl}
             onChange={(event) =>
               setInventoryEditForm({
                 ...inventoryEditForm,
-                stockQuantity: event.target.value,
+                imageUrl: event.target.value,
               })
             }
-            placeholder="Stock Quantity"
-            required
+            placeholder="Image URL (optional)"
           />
           <input
             type="number"
@@ -309,12 +363,32 @@ function InventoryPage({
           </div>
         </div>
 
-        <input
-          type="text"
-          value={inventorySearchQuery}
-          onChange={(event) => setInventorySearchQuery(event.target.value)}
-          placeholder="Search by product ID, product name, or stock quantity"
-        />
+        <div className="inventory-toolbar">
+          <div className="inventory-metrics">
+            <article className="inventory-metric-card">
+              <span>Total Items</span>
+              <strong>{totalProducts}</strong>
+            </article>
+            <article className="inventory-metric-card">
+              <span>Total Units</span>
+              <strong>{totalUnits}</strong>
+            </article>
+            <article className="inventory-metric-card">
+              <span>Low Stock</span>
+              <strong>{lowStockCount}</strong>
+            </article>
+          </div>
+
+          <div className="inventory-search">
+            <input
+              type="text"
+              value={inventorySearchQuery}
+              onChange={(event) => setInventorySearchQuery(event.target.value)}
+              placeholder="Search by product ID, product name, or stock quantity"
+              className="inventory-search-input"
+            />
+          </div>
+        </div>
 
         <div className="order-search-results">
           <div className="inventory-table inventory-table-head">
@@ -341,19 +415,29 @@ function InventoryPage({
                 <button
                   type="button"
                   className="ghost-button"
-                  onClick={() =>
+                  onClick={() => {
                     setInventoryIncreaseForm({
                       ...inventoryIncreaseForm,
                       productId: String(product.productId),
-                    })
-                  }
+                    });
+                    restockSectionRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }}
                 >
                   Restock
                 </button>
                 <button
                   type="button"
                   className="secondary-button"
-                  onClick={() => handleStartEditInventoryItem(product)}
+                  onClick={() => {
+                    handleStartEditInventoryItem(product);
+                    editSectionRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                  }}
                   disabled={actionInFlight}
                 >
                   Edit

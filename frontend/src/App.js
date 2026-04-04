@@ -18,6 +18,9 @@ import InventoryPage from "./pages/InventoryPage";
 const DEFAULT_API = "";
 const PAYMENT_METHODS = ["Cash", "BANK_TRANSFER", "CHEQUE"];
 const SHIPMENT_STATUSES = ["PENDING", "SHIPPED", "DELIVERED"];
+const STORAGE_BLOB_URL = process.env.REACT_APP_STORAGE_BLOB_URL || "";
+const STORAGE_SAS_TOKEN = process.env.REACT_APP_STORAGE_SAS_TOKEN || "";
+const IMAGE_UPLOAD_ENABLED = Boolean(STORAGE_BLOB_URL && STORAGE_SAS_TOKEN);
 
 const emptyCustomerForm = {
   customerName: "",
@@ -48,8 +51,11 @@ const emptyShipmentForm = {
 const emptyInventoryCreateForm = {
   productId: "",
   productName: "",
+  imageUrl: "",
   stockQuantity: "",
   price: "",
+  imageFile: null,
+  imagePreviewUrl: "",
 };
 
 const emptyInventoryIncreaseForm = {
@@ -61,9 +67,47 @@ const emptyInventoryIncreaseForm = {
 const emptyInventoryEditForm = {
   productId: "",
   productName: "",
-  stockQuantity: "",
+  imageUrl: "",
   price: "",
 };
+
+function buildBlobUrl(blobName) {
+  const normalizedBase = STORAGE_BLOB_URL.trim().replace(/\/+$/, "");
+  const normalizedToken = STORAGE_SAS_TOKEN.trim();
+  const tokenPrefix = normalizedToken.startsWith("?") ? "" : "?";
+  return `${normalizedBase}/${blobName}${tokenPrefix}${normalizedToken}`;
+}
+
+function getFileExtension(name = "") {
+  const match = /\.([A-Za-z0-9]+)$/.exec(name);
+  return match ? match[1].toLowerCase() : "";
+}
+
+async function uploadImageToBlob(file) {
+  if (!IMAGE_UPLOAD_ENABLED) {
+    throw new Error("Image upload is not configured. Please add blob storage env vars.");
+  }
+
+  const extension = getFileExtension(file.name);
+  const safeExtension = extension ? `.${extension}` : "";
+  const fileName = `product-${Date.now()}-${Math.random().toString(16).slice(2)}${safeExtension}`;
+  const uploadUrl = buildBlobUrl(encodeURIComponent(fileName));
+
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "x-ms-blob-type": "BlockBlob",
+      "Content-Type": file.type || "application/octet-stream",
+    },
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Image upload failed (HTTP ${response.status})`);
+  }
+
+  return `${STORAGE_BLOB_URL.trim().replace(/\/+$/, "")}/${fileName}`;
+}
 
 async function requestJson(baseUrl, path, options = {}) {
   const normalizedBase = (baseUrl || "").trim().replace(/\/+$/, "");
@@ -391,16 +435,25 @@ function App() {
     }
 
     await runAction(async () => {
+      let imageUrl = (inventoryCreateForm.imageUrl || "").trim();
+      if (inventoryCreateForm.imageFile) {
+        imageUrl = await uploadImageToBlob(inventoryCreateForm.imageFile);
+      }
+
       await api("/inventory/products", {
         method: "POST",
         body: JSON.stringify({
           productId: Number(inventoryCreateForm.productId),
           productName: inventoryCreateForm.productName,
+          imageUrl: imageUrl || null,
           stockQuantity: Number(inventoryCreateForm.stockQuantity),
           price: Number(inventoryCreateForm.price),
         }),
       });
 
+      if (inventoryCreateForm.imagePreviewUrl) {
+        URL.revokeObjectURL(inventoryCreateForm.imagePreviewUrl);
+      }
       setInventoryCreateForm(emptyInventoryCreateForm);
       await refreshProducts();
       await handleLoadStockUpdates(true);
@@ -436,7 +489,7 @@ function App() {
     setInventoryEditForm({
       productId: String(product.productId ?? ""),
       productName: product.productName || "",
-      stockQuantity: String(product.stockQuantity ?? ""),
+      imageUrl: product.imageUrl || "",
       price: String(product.price ?? ""),
     });
     setNotice(`Editing product #${product.productId}`);
@@ -453,8 +506,8 @@ function App() {
       return;
     }
 
-    if (inventoryEditForm.stockQuantity === "" || inventoryEditForm.price === "") {
-      setError("Stock quantity and price are required for edit");
+    if (inventoryEditForm.price === "") {
+      setError("Price is required for edit");
       return;
     }
 
@@ -463,7 +516,7 @@ function App() {
       const payload = {
         productId,
         productName: inventoryEditForm.productName,
-        stockQuantity: Number(inventoryEditForm.stockQuantity),
+        imageUrl: (inventoryEditForm.imageUrl || "").trim() || null,
         price: Number(inventoryEditForm.price),
       };
 
@@ -648,7 +701,7 @@ function App() {
 
   async function handleLoadStockUpdates(silent = false) {
     const load = async () => {
-      const result = await api("/inventory/stock-updates?size=20");
+      const result = await api("/inventory/stock-updates/all");
       const updates = Array.isArray(result)
         ? result
         : Array.isArray(result?.content)
@@ -1205,144 +1258,146 @@ function App() {
     <div className="app-shell">
       <ToastStack notice={notice} error={error} />
 
-      <section className="app-topbar" aria-label="System Header and Navigation">
-        <header className="brand-header" aria-label="System Header">
-          <div className="brand-header-mark">S</div>
-          <div className="brand-header-copy">
-            <p className="brand-header-label">Management System</p>
-            <h1>SoleX Order Control</h1>
-          </div>
-        </header>
+      <div className="content-shell">
+        <section className="app-topbar" aria-label="System Header and Navigation">
+          <header className="brand-header" aria-label="System Header">
+            <div className="brand-header-mark">S</div>
+            <div className="brand-header-copy">
+              <p className="brand-header-label">Management System</p>
+              <h1>SoleX Order Control</h1>
+            </div>
+          </header>
 
-        <PageTabs
-          page={page}
-          nextStep={nextStep}
-          cartItemCount={cartItemCount}
-          orderId={orderId}
-          cartLength={cart.length}
-          onChange={setPage}
-        />
-      </section>
+          <PageTabs
+            page={page}
+            nextStep={nextStep}
+            cartItemCount={cartItemCount}
+            orderId={orderId}
+            cartLength={cart.length}
+            onChange={setPage}
+          />
+        </section>
 
-      <FlowBanner nextStep={nextStep} />
+        <FlowBanner nextStep={nextStep} />
 
-      <NoticeBanner notice={notice} error={error} />
+        <NoticeBanner notice={notice} error={error} />
 
-      {loading && page === "catalog" ? (
-        <section className="panel loading-panel">Loading products...</section>
-      ) : null}
+        {loading && page === "catalog" ? (
+          <section className="panel loading-panel">Loading products...</section>
+        ) : null}
 
-      {page === "catalog" && (
-        <CatalogPage
-          loading={loading}
-          products={products}
-          formatMoney={formatMoney}
-          addToCartQuantities={addToCartQuantities}
-          setAddToCartQuantities={setAddToCartQuantities}
-          handleAddToCart={handleAddToCart}
-        />
-      )}
+        {page === "catalog" && (
+          <CatalogPage
+            loading={loading}
+            products={products}
+            formatMoney={formatMoney}
+            addToCartQuantities={addToCartQuantities}
+            setAddToCartQuantities={setAddToCartQuantities}
+            handleAddToCart={handleAddToCart}
+          />
+        )}
 
-      {page === "inventory-management" && (
-        <InventoryPage
-          actionInFlight={actionInFlight}
-          ButtonLabel={ButtonLabel}
-          TableSkeleton={TableSkeleton}
-          products={products}
-          formatMoney={formatMoney}
-          inventorySearchQuery={inventorySearchQuery}
-          setInventorySearchQuery={setInventorySearchQuery}
-          inventoryCreateForm={inventoryCreateForm}
-          setInventoryCreateForm={setInventoryCreateForm}
-          handleCreateInventoryItem={handleCreateInventoryItem}
-          inventoryIncreaseForm={inventoryIncreaseForm}
-          setInventoryIncreaseForm={setInventoryIncreaseForm}
-          handleIncreaseInventoryStock={handleIncreaseInventoryStock}
-          inventoryEditForm={inventoryEditForm}
-          setInventoryEditForm={setInventoryEditForm}
-          handleStartEditInventoryItem={handleStartEditInventoryItem}
-          handleCancelEditInventoryItem={handleCancelEditInventoryItem}
-          handleUpdateInventoryItem={handleUpdateInventoryItem}
-          handleDeleteInventoryItem={handleDeleteInventoryItem}
-          handleLoadStockUpdates={handleLoadStockUpdates}
-          pendingAction={pendingAction}
-          stockUpdates={stockUpdates}
-          formatDate={formatDate}
-        />
-      )}
+        {page === "inventory-management" && (
+          <InventoryPage
+            actionInFlight={actionInFlight}
+            ButtonLabel={ButtonLabel}
+            TableSkeleton={TableSkeleton}
+            products={products}
+            formatMoney={formatMoney}
+            imageUploadEnabled={IMAGE_UPLOAD_ENABLED}
+            inventorySearchQuery={inventorySearchQuery}
+            setInventorySearchQuery={setInventorySearchQuery}
+            inventoryCreateForm={inventoryCreateForm}
+            setInventoryCreateForm={setInventoryCreateForm}
+            handleCreateInventoryItem={handleCreateInventoryItem}
+            inventoryIncreaseForm={inventoryIncreaseForm}
+            setInventoryIncreaseForm={setInventoryIncreaseForm}
+            handleIncreaseInventoryStock={handleIncreaseInventoryStock}
+            inventoryEditForm={inventoryEditForm}
+            setInventoryEditForm={setInventoryEditForm}
+            handleStartEditInventoryItem={handleStartEditInventoryItem}
+            handleCancelEditInventoryItem={handleCancelEditInventoryItem}
+            handleUpdateInventoryItem={handleUpdateInventoryItem}
+            handleDeleteInventoryItem={handleDeleteInventoryItem}
+            handleLoadStockUpdates={handleLoadStockUpdates}
+            pendingAction={pendingAction}
+            stockUpdates={stockUpdates}
+            formatDate={formatDate}
+          />
+        )}
 
-      {page === "cart" && (
-        <CartPage
-          actionInFlight={actionInFlight}
-          ButtonLabel={ButtonLabel}
-          pendingAction={pendingAction}
-          cart={cart}
-          cartItemCount={cartItemCount}
-          cartSubtotal={cartSubtotal}
-          cartTotal={cartTotal}
-          formatMoney={formatMoney}
-          customerForm={customerForm}
-          setCustomerForm={setCustomerForm}
-          handleCreateOrder={handleCreateOrder}
-          handleCartQuantityChange={handleCartQuantityChange}
-          handleRemoveFromCart={handleRemoveFromCart}
-          handleClearCart={handleClearCart}
-          setPage={setPage}
-        />
-      )}
+        {page === "cart" && (
+          <CartPage
+            actionInFlight={actionInFlight}
+            ButtonLabel={ButtonLabel}
+            pendingAction={pendingAction}
+            cart={cart}
+            cartItemCount={cartItemCount}
+            cartSubtotal={cartSubtotal}
+            cartTotal={cartTotal}
+            formatMoney={formatMoney}
+            customerForm={customerForm}
+            setCustomerForm={setCustomerForm}
+            handleCreateOrder={handleCreateOrder}
+            handleCartQuantityChange={handleCartQuantityChange}
+            handleRemoveFromCart={handleRemoveFromCart}
+            handleClearCart={handleClearCart}
+            setPage={setPage}
+          />
+        )}
 
-      {page === "history" && (
-        <HistoryPage
-          actionInFlight={actionInFlight}
-          ButtonLabel={ButtonLabel}
-          TableSkeleton={TableSkeleton}
-          pendingAction={pendingAction}
-          formatMoney={formatMoney}
-          allOrders={allOrders}
-          orderSearchQuery={orderSearchQuery}
-          setOrderSearchQuery={setOrderSearchQuery}
-          handleLoadAllOrders={handleLoadAllOrders}
-          handleViewOrderDetails={handleViewOrderDetails}
-          allPayments={allPayments}
-          paymentSearchQuery={paymentSearchQuery}
-          setPaymentSearchQuery={setPaymentSearchQuery}
-          handleLoadAllPayments={handleLoadAllPayments}
-          handleViewPaymentDetails={handleViewPaymentDetails}
-          allShipments={allShipments}
-          shipmentSearchQuery={shipmentSearchQuery}
-          setShipmentSearchQuery={setShipmentSearchQuery}
-          handleLoadAllShipments={handleLoadAllShipments}
-          handleViewShipmentDetails={handleViewShipmentDetails}
-          formatDate={formatDate}
-        />
-      )}
+        {page === "history" && (
+          <HistoryPage
+            actionInFlight={actionInFlight}
+            ButtonLabel={ButtonLabel}
+            TableSkeleton={TableSkeleton}
+            pendingAction={pendingAction}
+            formatMoney={formatMoney}
+            allOrders={allOrders}
+            orderSearchQuery={orderSearchQuery}
+            setOrderSearchQuery={setOrderSearchQuery}
+            handleLoadAllOrders={handleLoadAllOrders}
+            handleViewOrderDetails={handleViewOrderDetails}
+            allPayments={allPayments}
+            paymentSearchQuery={paymentSearchQuery}
+            setPaymentSearchQuery={setPaymentSearchQuery}
+            handleLoadAllPayments={handleLoadAllPayments}
+            handleViewPaymentDetails={handleViewPaymentDetails}
+            allShipments={allShipments}
+            shipmentSearchQuery={shipmentSearchQuery}
+            setShipmentSearchQuery={setShipmentSearchQuery}
+            handleLoadAllShipments={handleLoadAllShipments}
+            handleViewShipmentDetails={handleViewShipmentDetails}
+            formatDate={formatDate}
+          />
+        )}
 
-      {page === "payment" && (
-        <PaymentPage
-          actionInFlight={actionInFlight}
-          ButtonLabel={ButtonLabel}
-          DetailCardSkeleton={DetailCardSkeleton}
-          pendingAction={pendingAction}
-          formatMoney={formatMoney}
-          setPage={setPage}
-          currentOrderSnapshot={currentOrderSnapshot}
-          orderId={orderId}
-          expectedPaymentAmount={expectedPaymentAmount}
-          paymentForm={paymentForm}
-          setPaymentForm={setPaymentForm}
-          handlePaymentMethodChange={handlePaymentMethodChange}
-          PAYMENT_METHODS={PAYMENT_METHODS}
-          paymentBalance={paymentBalance}
-          handleVerifyPaymentDetails={handleVerifyPaymentDetails}
-          paymentVerified={paymentVerified}
-          handleProcessPayment={handleProcessPayment}
-          handleLoadPaymentStatus={handleLoadPaymentStatus}
-          paymentData={paymentData}
-          handleConfirmPayment={handleConfirmPayment}
-          getPaymentStage={getPaymentStage}
-          formatDate={formatDate}
-        />
-      )}
+        {page === "payment" && (
+          <PaymentPage
+            actionInFlight={actionInFlight}
+            ButtonLabel={ButtonLabel}
+            DetailCardSkeleton={DetailCardSkeleton}
+            pendingAction={pendingAction}
+            formatMoney={formatMoney}
+            setPage={setPage}
+            currentOrderSnapshot={currentOrderSnapshot}
+            orderId={orderId}
+            expectedPaymentAmount={expectedPaymentAmount}
+            paymentForm={paymentForm}
+            setPaymentForm={setPaymentForm}
+            handlePaymentMethodChange={handlePaymentMethodChange}
+            PAYMENT_METHODS={PAYMENT_METHODS}
+            paymentBalance={paymentBalance}
+            handleVerifyPaymentDetails={handleVerifyPaymentDetails}
+            paymentVerified={paymentVerified}
+            handleProcessPayment={handleProcessPayment}
+            handleLoadPaymentStatus={handleLoadPaymentStatus}
+            paymentData={paymentData}
+            handleConfirmPayment={handleConfirmPayment}
+            getPaymentStage={getPaymentStage}
+            formatDate={formatDate}
+          />
+        )}
 
       {/* CART PAGE */}
       {false && page === "cart" && (
@@ -2447,6 +2502,20 @@ function App() {
           )}
         </main>
       )}
+
+        <footer className="app-footer">
+          <div className="app-footer-content">
+            <div>
+              <strong>SoleX Order Control</strong>
+              <span>Unified order, payment, and shipment hub</span>
+            </div>
+            <div>
+              <span>Order Processing System</span>
+              <span>© {new Date().getFullYear()} SoleX Retail Operations</span>
+            </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }

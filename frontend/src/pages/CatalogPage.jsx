@@ -37,6 +37,11 @@ function CatalogPage({
           <div className="product-grid">
             {products.map((product) => (
               <article key={product.productId} className="product-card">
+                {product.imageUrl && (
+                  <div className="product-image">
+                    <img src={product.imageUrl} alt={product.productName || "Product"} loading="lazy" />
+                  </div>
+                )}
                 <div className="product-header">
                   <strong>{product.productName}</strong>
                   <span

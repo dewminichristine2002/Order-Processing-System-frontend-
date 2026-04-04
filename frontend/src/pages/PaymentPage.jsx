@@ -262,7 +262,7 @@ function PaymentPage({
         </form>
       </section>
 
-      <section className="panel">
+      <section className="panel full-width">
         <div className="panel-heading">
           <div>
             <p className="section-label">Payment Status</p>

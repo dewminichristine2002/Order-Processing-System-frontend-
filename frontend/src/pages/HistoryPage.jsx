@@ -49,23 +49,60 @@ function HistoryPage({
   }, [historyView, handleLoadAllOrders, handleLoadAllPayments, handleLoadAllShipments]);
 
   async function handleOpenOrderModal(order) {
-    const loadedOrder = await handleViewOrderDetails(order);
+    if (!order) return;
+
+    const normalizedOrder = {
+      ...order,
+      orderId: order.orderId ?? order.id ?? order.orderID ?? order.order_id,
+      items: Array.isArray(order.items) ? order.items : [],
+      isLoadingDetails: true,
+    };
+
+    setViewOrderModal(normalizedOrder);
+
+    const loadedOrder = await handleViewOrderDetails(normalizedOrder);
     if (loadedOrder) {
-      setViewOrderModal(loadedOrder);
+      setViewOrderModal({ ...normalizedOrder, ...loadedOrder, isLoadingDetails: false });
+    } else {
+      setViewOrderModal((current) =>
+        current ? { ...current, isLoadingDetails: false } : current,
+      );
     }
   }
 
   async function handleOpenPaymentModal(payment) {
+    if (!payment) return;
+
+    setViewPaymentModal({
+      ...payment,
+      isLoadingDetails: true,
+    });
+
     const loadedPayment = await handleViewPaymentDetails(payment);
     if (loadedPayment) {
       setViewPaymentModal(loadedPayment);
+    } else {
+      setViewPaymentModal((current) =>
+        current ? { ...current, isLoadingDetails: false } : current,
+      );
     }
   }
 
   async function handleOpenShipmentModal(shipment) {
+    if (!shipment) return;
+
+    setViewShipmentModal({
+      ...shipment,
+      isLoadingDetails: true,
+    });
+
     const loadedShipment = await handleViewShipmentDetails(shipment);
     if (loadedShipment) {
       setViewShipmentModal(loadedShipment);
+    } else {
+      setViewShipmentModal((current) =>
+        current ? { ...current, isLoadingDetails: false } : current,
+      );
     }
   }
 
@@ -149,7 +186,7 @@ function HistoryPage({
 
   return (
     <>
-      <main className="page-grid">
+      <main className="page-grid history-page">
         <section className="panel full-width">
           <div className="panel-heading">
             <div>
@@ -300,6 +337,15 @@ function HistoryPage({
               {pendingAction === "load-all-payments" && (
                 <TableSkeleton columns={6} rows={4} className="payment-search-results" />
               )}
+
+              {hasRequestedPayments.current &&
+                pendingAction !== "load-all-payments" &&
+                allPayments.length === 0 && (
+                  <p className="workflow-note">
+                    No payment records yet. Process a payment to see it here, then use
+                    "Load All Payments" to refresh.
+                  </p>
+                )}
 
               {allPayments.length > 0 && (
                 <>
@@ -460,13 +506,18 @@ function HistoryPage({
                 <p className="section-label">Order Details</p>
                 <h3 id="view-order-title">Order #{viewOrderModal.orderId}</h3>
               </div>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => setViewOrderModal(null)}
-              >
-                Close
-              </button>
+              <div className="order-view-modal-actions">
+                {viewOrderModal.isLoadingDetails ? (
+                  <span className="modal-loading-note">Loading latest details...</span>
+                ) : null}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => setViewOrderModal(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="order-view-modal-grid">
@@ -549,13 +600,18 @@ function HistoryPage({
                 <p className="section-label">Payment Details</p>
                 <h3 id="view-payment-title">Payment #{viewPaymentModal.paymentId || "N/A"}</h3>
               </div>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => setViewPaymentModal(null)}
-              >
-                Close
-              </button>
+              <div className="order-view-modal-actions">
+                {viewPaymentModal.isLoadingDetails ? (
+                  <span className="modal-loading-note">Loading latest details...</span>
+                ) : null}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => setViewPaymentModal(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="order-view-modal-grid">
@@ -605,13 +661,18 @@ function HistoryPage({
                   Shipment #{viewShipmentModal.shipmentId || "N/A"}
                 </h3>
               </div>
-              <button
-                type="button"
-                className="ghost-button"
-                onClick={() => setViewShipmentModal(null)}
-              >
-                Close
-              </button>
+              <div className="order-view-modal-actions">
+                {viewShipmentModal.isLoadingDetails ? (
+                  <span className="modal-loading-note">Loading latest details...</span>
+                ) : null}
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={() => setViewShipmentModal(null)}
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="order-view-modal-grid">
