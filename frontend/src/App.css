@@ -2971,8 +2971,16 @@ textarea::placeholder {
 
 .app-topbar {
   background:
-    linear-gradient(120deg, rgba(249, 115, 22, 0.98), rgba(251, 146, 60, 0.92) 45%, rgba(31, 138, 112, 0.92));
-  border: 1px solid rgba(255, 255, 255, 0.55);
+    linear-gradient(
+      118deg,
+      #7c2d12 0%,
+      #9a3412 12%,
+      #c2410c 32%,
+      #ea580c 58%,
+      #fb923c 82%,
+      #ffedd5 100%
+    );
+  border: 1px solid rgba(255, 255, 255, 0.42);
   box-shadow:
     0 22px 50px rgba(41, 28, 19, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.55);
@@ -3023,9 +3031,9 @@ textarea::placeholder {
 }
 
 .page-tabs button.next-step:not(.active) {
-  background: rgba(31, 138, 112, 0.14);
-  border: 1px solid rgba(31, 138, 112, 0.3);
-  color: #1f8a70;
+  background: rgba(255, 237, 213, 0.95);
+  border: 1px solid rgba(251, 146, 60, 0.45);
+  color: #9a3412;
 }
 
 .panel,
@@ -3157,4 +3165,108 @@ textarea:focus {
 .product-grid .product-card:nth-child(4) { animation-delay: 120ms; }
 .product-grid .product-card:nth-child(5) { animation-delay: 160ms; }
 .product-grid .product-card:nth-child(6) { animation-delay: 200ms; }
+
+/* --- App topbar: unified glass header (wins over legacy page-tab passes) --- */
+.app-topbar .brand-header {
+  display: flex;
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 10px 16px 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14px) saturate(165%);
+  box-shadow:
+    0 12px 32px rgba(41, 28, 19, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  flex: 1 1 300px;
+  min-width: 0;
+}
+
+.app-topbar .brand-header-label {
+  color: rgba(255, 247, 237, 0.96);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.app-topbar .brand-header-copy h1 {
+  color: #fffefb;
+  font-family: "Sora", "Aptos", "Segoe UI", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+}
+
+.app-topbar .page-tabs {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  padding: 6px 8px;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(12px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 10px 26px rgba(41, 28, 19, 0.12);
+}
+
+.app-topbar .page-tabs button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.app-topbar .page-tabs button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.42);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.app-topbar .page-tabs button.active {
+  background: linear-gradient(155deg, #fb923c 0%, #f97316 42%, #ea580c 100%);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.5);
+  font-weight: 800;
+  box-shadow:
+    0 16px 36px rgba(234, 88, 12, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.app-topbar .page-tabs button.next-step:not(.active) {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(254, 215, 170, 0.75);
+  color: #fffefb;
+  box-shadow:
+    0 0 0 2px rgba(253, 186, 116, 0.45),
+    0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.app-topbar .page-tabs button:disabled {
+  background: rgba(15, 23, 42, 0.22);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.4);
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 740px) {
+  .app-topbar .page-tabs button {
+    width: auto;
+  }
+}
 
