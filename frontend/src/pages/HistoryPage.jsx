@@ -73,14 +73,22 @@ function HistoryPage({
   async function handleOpenPaymentModal(payment) {
     if (!payment) return;
 
-    setViewPaymentModal({
+    const normalizedPayment = {
       ...payment,
+      paymentId: payment.paymentId ?? payment.id ?? payment.paymentID,
+      orderId: payment.orderId ?? payment.orderID ?? payment.order_id,
       isLoadingDetails: true,
-    });
+    };
 
-    const loadedPayment = await handleViewPaymentDetails(payment);
+    setViewPaymentModal(normalizedPayment);
+
+    const loadedPayment = await handleViewPaymentDetails(normalizedPayment);
     if (loadedPayment) {
-      setViewPaymentModal(loadedPayment);
+      setViewPaymentModal({
+        ...normalizedPayment,
+        ...loadedPayment,
+        isLoadingDetails: false,
+      });
     } else {
       setViewPaymentModal((current) =>
         current ? { ...current, isLoadingDetails: false } : current,
@@ -91,14 +99,22 @@ function HistoryPage({
   async function handleOpenShipmentModal(shipment) {
     if (!shipment) return;
 
-    setViewShipmentModal({
+    const normalizedShipment = {
       ...shipment,
+      shipmentId: shipment.shipmentId ?? shipment.id ?? shipment.shipmentID,
+      orderId: shipment.orderId ?? shipment.orderID ?? shipment.order_id,
       isLoadingDetails: true,
-    });
+    };
 
-    const loadedShipment = await handleViewShipmentDetails(shipment);
+    setViewShipmentModal(normalizedShipment);
+
+    const loadedShipment = await handleViewShipmentDetails(normalizedShipment);
     if (loadedShipment) {
-      setViewShipmentModal(loadedShipment);
+      setViewShipmentModal({
+        ...normalizedShipment,
+        ...loadedShipment,
+        isLoadingDetails: false,
+      });
     } else {
       setViewShipmentModal((current) =>
         current ? { ...current, isLoadingDetails: false } : current,

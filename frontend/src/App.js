@@ -837,7 +837,11 @@ function App() {
       }
 
       const normalizedOrder = {
-        orderId: detailedOrder.orderId ?? orderSummary.orderId,
+        orderId:
+          detailedOrder.orderId ??
+          detailedOrder.id ??
+          detailedOrder.orderID ??
+          orderSummary.orderId,
         customerName: detailedOrder.customerName || orderSummary.customerName || "",
         email: detailedOrder.email || orderSummary.email || "",
         contactNumber: detailedOrder.contactNumber || orderSummary.contactNumber || "",
@@ -949,7 +953,14 @@ function App() {
     await runAction(async () => {
       try {
         const payments = await api("/payments");
-        setAllPayments(Array.isArray(payments) ? payments : []);
+        const list = Array.isArray(payments) ? payments : [];
+        setAllPayments(
+          list.map((p) => ({
+            ...p,
+            paymentId: p.paymentId ?? p.id ?? p.paymentID,
+            orderId: p.orderId ?? p.orderID ?? p.order_id,
+          })),
+        );
         return;
       } catch (paymentsError) {
         if (paymentsError.status && ![403, 404, 405].includes(paymentsError.status)) {
@@ -961,12 +972,20 @@ function App() {
       const orderList = Array.isArray(orders) ? orders : [];
 
       const paymentResults = await Promise.allSettled(
-        orderList.map((order) => api(`/payments/${order.orderId}`))
+        orderList.map((order) => {
+          const oid = order.orderId ?? order.id ?? order.orderID ?? order.order_id;
+          return oid != null && oid !== "" ? api(`/payments/${oid}`) : Promise.resolve(null);
+        }),
       );
 
       const mappedPayments = paymentResults
         .filter((result) => result.status === "fulfilled" && result.value)
         .map((result) => result.value)
+        .map((p) => ({
+          ...p,
+          paymentId: p.paymentId ?? p.id ?? p.paymentID,
+          orderId: p.orderId ?? p.orderID ?? p.order_id,
+        }))
         .sort((left, right) => Number(right.paymentId || 0) - Number(left.paymentId || 0));
 
       setAllPayments(mappedPayments);
@@ -1011,8 +1030,16 @@ function App() {
       }
 
       return {
-        paymentId: detailedPayment.paymentId ?? paymentSummary.paymentId,
-        orderId: detailedPayment.orderId ?? paymentSummary.orderId,
+        paymentId:
+          detailedPayment.paymentId ??
+          detailedPayment.id ??
+          paymentSummary.paymentId ??
+          paymentSummary.id,
+        orderId:
+          detailedPayment.orderId ??
+          detailedPayment.orderID ??
+          paymentSummary.orderId ??
+          paymentSummary.orderID,
         paymentMethod: detailedPayment.paymentMethod ?? paymentSummary.paymentMethod,
         amount: Number(detailedPayment.amount ?? paymentSummary.amount ?? 0),
         paymentStatus: detailedPayment.paymentStatus ?? paymentSummary.paymentStatus,
@@ -1200,7 +1227,14 @@ function App() {
   async function handleLoadAllShipments() {
     await runAction(async () => {
       const shipments = await api("/shipping");
-      setAllShipments(Array.isArray(shipments) ? shipments : []);
+      const list = Array.isArray(shipments) ? shipments : [];
+      setAllShipments(
+        list.map((s) => ({
+          ...s,
+          shipmentId: s.shipmentId ?? s.id ?? s.shipmentID,
+          orderId: s.orderId ?? s.orderID ?? s.order_id,
+        })),
+      );
     }, "All shipments loaded.", "load-all-shipments");
   }
 
@@ -1241,8 +1275,16 @@ function App() {
       }
 
       return {
-        shipmentId: detailedShipment.shipmentId ?? shipmentSummary.shipmentId,
-        orderId: detailedShipment.orderId ?? shipmentSummary.orderId,
+        shipmentId:
+          detailedShipment.shipmentId ??
+          detailedShipment.id ??
+          shipmentSummary.shipmentId ??
+          shipmentSummary.id,
+        orderId:
+          detailedShipment.orderId ??
+          detailedShipment.orderID ??
+          shipmentSummary.orderId ??
+          shipmentSummary.orderID,
         customerName: detailedShipment.customerName ?? shipmentSummary.customerName,
         contactNumber: detailedShipment.contactNumber ?? shipmentSummary.contactNumber,
         email: detailedShipment.email ?? shipmentSummary.email,
