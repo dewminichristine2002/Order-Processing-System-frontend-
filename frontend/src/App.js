@@ -1330,35 +1330,6 @@ function App() {
               onChange={setPage}
             />
           </div>
-
-          <div className="app-topbar-aside">
-            <button
-              type="button"
-              className="app-topbar-profile"
-              aria-label="Account menu"
-              aria-haspopup="menu"
-              aria-expanded="false"
-            >
-              <span className="app-topbar-profile-avatar" aria-hidden="true" />
-              <svg
-                className="app-topbar-profile-chevron"
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path
-                  d="M3 4.5L6 7.5L9 4.5"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
         </section>
 
         <FlowBanner nextStep={nextStep} />
