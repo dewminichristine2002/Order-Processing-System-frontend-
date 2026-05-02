@@ -727,7 +727,13 @@ function App() {
   async function handleLoadAllOrders() {
     await runAction(async () => {
       const orders = await api("/orders");
-      setAllOrders(Array.isArray(orders) ? orders : []);
+      const list = Array.isArray(orders) ? orders : [];
+      setAllOrders(
+        list.map((o) => ({
+          ...o,
+          orderId: o.orderId ?? o.id ?? o.orderID ?? o.order_id,
+        })),
+      );
     }, "All orders loaded.", "load-all-orders");
   }
 

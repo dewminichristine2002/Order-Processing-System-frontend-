@@ -976,6 +976,9 @@ button:disabled,
   display: grid;
   gap: 8px;
   margin-top: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-skeleton {
@@ -1032,12 +1035,23 @@ button:disabled,
 
 .order-table {
   display: grid;
-  grid-template-columns: 0.9fr 1.2fr 1.1fr 1fr 1fr 0.8fr;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(0, 1.2fr)
+    minmax(0, 1.1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.order-table > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .order-table-head {
@@ -1067,6 +1081,16 @@ button:disabled,
 .order-table-action {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.order-table-action .ghost-button,
+.payment-table-action .ghost-button,
+.shipment-table-action .ghost-button {
+  background: var(--brand-soft);
+  border: 1px solid rgba(249, 115, 22, 0.38);
+  color: var(--text-strong);
+  box-shadow: 0 2px 10px rgba(249, 115, 22, 0.14);
 }
 
 /* Payment Styles */
@@ -1157,6 +1181,9 @@ button:disabled,
   display: grid;
   gap: 8px;
   margin-top: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .payment-order-context {
@@ -1253,12 +1280,23 @@ button:disabled,
 
 .payment-table {
   display: grid;
-  grid-template-columns: 0.9fr 0.9fr 1fr 1fr 1fr 0.8fr;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(0, 0.9fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    minmax(0, 1fr)
+    auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.payment-table > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .payment-table-head {
@@ -1288,6 +1326,7 @@ button:disabled,
 .payment-table-action {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 .payment-metadata {
@@ -1800,16 +1839,30 @@ textarea::placeholder {
   display: grid;
   gap: 8px;
   margin-top: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .shipment-table {
   display: grid;
-  grid-template-columns: 0.9fr 0.9fr 1.4fr 1fr 1.2fr 0.8fr;
+  grid-template-columns:
+    minmax(0, 0.9fr)
+    minmax(0, 0.9fr)
+    minmax(0, 1.4fr)
+    minmax(0, 1fr)
+    minmax(0, 1.2fr)
+    auto;
   gap: 12px;
   align-items: center;
   padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.shipment-table > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .shipment-table-head {
@@ -1971,6 +2024,7 @@ textarea::placeholder {
 .shipment-table-action {
   display: flex;
   justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 /* Two Columns Grid for Delivery Assignment + Status Update */
