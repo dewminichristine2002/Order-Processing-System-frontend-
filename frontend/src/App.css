@@ -129,12 +129,12 @@
 
 .app-topbar .brand-header {
   margin: 0;
-  padding: 8px 10px;
-  border: 2px solid #FF6600;
-  border-radius: 14px;
+  padding: 4px 8px 4px 2px;
+  border: none;
+  border-radius: 0;
   background: transparent;
   box-shadow: none;
-  flex: 1 1 320px;
+  flex: 0 0 auto;
 }
 
 .app-topbar .page-tabs {
@@ -144,13 +144,14 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  flex: 2 1 680px;
+  flex: 1 1 auto;
   display: flex;
   flex-wrap: nowrap;
-  justify-content: flex-end;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
+  min-width: 0;
 }
 
 .app-topbar .page-tabs::-webkit-scrollbar {
@@ -1979,9 +1980,12 @@ textarea::placeholder {
     align-items: flex-start;
   }
 
-  .app-topbar .brand-header,
-  .app-topbar .page-tabs {
+  .app-topbar-inner {
     flex-basis: 100%;
+  }
+
+  .app-topbar-aside {
+    margin-left: auto;
   }
 
   .app-topbar .page-tabs {
@@ -2970,19 +2974,12 @@ textarea::placeholder {
 }
 
 .app-topbar {
-  background:
-    linear-gradient(
-      118deg,
-      #7c2d12 0%,
-      #9a3412 12%,
-      #c2410c 32%,
-      #ea580c 58%,
-      #fb923c 82%,
-      #ffedd5 100%
-    );
-  border: 1px solid rgba(255, 255, 255, 0.42);
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(102deg, #fa9e3d 0%, #ffb86b 38%, #9fd9c1 72%, #78cc9b 100%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   box-shadow:
-    0 22px 50px rgba(41, 28, 19, 0.22),
+    0 20px 44px rgba(41, 28, 19, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.55);
   position: relative;
   overflow: hidden;
@@ -2992,9 +2989,11 @@ textarea::placeholder {
   content: "";
   position: absolute;
   inset: 0;
+  z-index: 0;
   background:
-    radial-gradient(circle at 15% 30%, rgba(255, 255, 255, 0.22), transparent 38%),
-    radial-gradient(circle at 85% 25%, rgba(255, 255, 255, 0.18), transparent 45%);
+    linear-gradient(125deg, rgba(255, 255, 255, 0.35) 0%, transparent 42%),
+    radial-gradient(ellipse 90% 80% at 18% 20%, rgba(255, 255, 255, 0.28), transparent 55%),
+    radial-gradient(circle at 88% 40%, rgba(255, 255, 255, 0.2), transparent 48%);
   pointer-events: none;
 }
 
@@ -3166,107 +3165,183 @@ textarea:focus {
 .product-grid .product-card:nth-child(5) { animation-delay: 160ms; }
 .product-grid .product-card:nth-child(6) { animation-delay: 200ms; }
 
-/* --- App topbar: unified glass header (wins over legacy page-tab passes) --- */
+/* --- Reference header: orange→mint shell, frosted inner rail, profile pill --- */
+.app-topbar-inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 14px 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(18px) saturate(165%);
+  box-shadow:
+    0 12px 34px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98);
+}
+
+.app-topbar-divider {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 34px;
+  border-radius: 1px;
+  background: rgba(15, 23, 42, 0.1);
+}
+
 .app-topbar .brand-header {
   display: flex;
+  align-items: center;
+  gap: 12px;
   position: relative;
   z-index: 2;
   margin: 0;
-  padding: 10px 16px 10px 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  background: rgba(255, 255, 255, 0.14);
-  backdrop-filter: blur(14px) saturate(165%);
-  box-shadow:
-    0 12px 32px rgba(41, 28, 19, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  flex: 1 1 300px;
-  min-width: 0;
+  padding: 4px 6px 4px 2px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  flex: 0 0 auto;
 }
 
 .app-topbar .brand-header-label {
-  color: rgba(255, 247, 237, 0.96);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  color: #ea580c;
+  font-weight: 800;
+  text-shadow: none;
 }
 
 .app-topbar .brand-header-copy h1 {
-  color: #fffefb;
+  color: #0f172a;
   font-family: "Sora", "Aptos", "Segoe UI", sans-serif;
   font-weight: 800;
   letter-spacing: -0.03em;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
+  text-shadow: none;
 }
 
 .app-topbar .page-tabs {
   position: relative;
   z-index: 2;
   margin: 0;
-  padding: 6px 8px;
-  gap: 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(15, 23, 42, 0.14);
-  backdrop-filter: blur(12px) saturate(150%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    0 10px 26px rgba(41, 28, 19, 0.12);
+  padding: 0;
+  gap: 10px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
 }
 
 .app-topbar .page-tabs button {
   min-width: 0;
   min-height: 44px;
-  padding: 10px 14px;
-  border-radius: 999px;
+  padding: 10px 16px;
+  border-radius: 14px;
   font-size: 0.8125rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid rgba(226, 232, 240, 0.98);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.05),
+    0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .app-topbar .page-tabs button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.24);
-  border-color: rgba(255, 255, 255, 0.42);
-  color: #ffffff;
+  background: #ffffff;
+  border-color: rgba(251, 146, 60, 0.55);
+  color: #0f172a;
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.08),
+    0 12px 26px rgba(250, 158, 62, 0.2);
 }
 
 .app-topbar .page-tabs button.active {
-  background: linear-gradient(155deg, #fb923c 0%, #f97316 42%, #ea580c 100%);
+  background: linear-gradient(155deg, #fb923c 0%, #f97316 52%, #ea580c 100%);
   color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.5);
-  font-weight: 800;
+  border-color: rgba(255, 255, 255, 0.45);
+  font-weight: 700;
   box-shadow:
-    0 16px 36px rgba(234, 88, 12, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    0 10px 26px rgba(234, 88, 12, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .app-topbar .page-tabs button.next-step:not(.active) {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(254, 215, 170, 0.75);
-  color: #fffefb;
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(251, 146, 60, 0.55);
   box-shadow:
-    0 0 0 2px rgba(253, 186, 116, 0.45),
-    0 6px 16px rgba(0, 0, 0, 0.08);
+    0 0 0 2px rgba(253, 186, 116, 0.55),
+    0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .app-topbar .page-tabs button:disabled {
-  background: rgba(15, 23, 42, 0.22);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.4);
+  background: rgba(248, 250, 252, 0.98);
+  color: rgba(100, 116, 139, 0.75);
+  border-color: rgba(226, 232, 240, 0.95);
   opacity: 1;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
+.app-topbar-aside {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+}
+
+.app-topbar-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px 8px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  color: #475569;
+  font: inherit;
+  min-height: 46px;
+}
+
+.app-topbar-profile:hover {
+  border-color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+}
+
+.app-topbar-profile-avatar {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #4ade80 0%, #059669 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 8px rgba(5, 150, 105, 0.35);
+}
+
+.app-topbar-profile-chevron {
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
 @media (max-width: 740px) {
   .app-topbar .page-tabs button {
     width: auto;
+  }
+
+  .app-topbar-inner {
+    border-radius: 22px;
   }
 }
 
