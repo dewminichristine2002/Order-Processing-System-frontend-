@@ -337,7 +337,7 @@ function HistoryPage({
               <div className="shipment-action-row">
                 <button
                   type="button"
-                  style={{ backgroundColor: "#ff5722", color: "white" }}
+                  style={{ backgroundColor: "#22ff94", color: "white" }}
                   className="secondary-button"
                   onClick={handleLoadAllPayments}
                   disabled={actionInFlight}
